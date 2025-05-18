@@ -1,0 +1,28 @@
+This is a test document for our AI chat agent platform.
+
+It contains information about our company, products, and services.
+
+# Company Overview
+We are a tech company that specializes in AI solutions for businesses.
+
+# Products
+- AI Chat Agent
+- Data Analysis Tool
+- Customer Insights Platform
+
+# Services
+- Implementation
+- Training
+- Support
+
+# FAQ
+Q: How does the AI chat agent work?
+A: Our AI chat agent uses advanced natural language processing to understand customer queries and provide relevant answers based on your business data.
+
+Q: Is the chat agent customizable?
+A: Yes, you can customize the appearance, behavior, and knowledge base of the chat agent.
+
+Q: How do I get started?
+A: Sign up for an account, create a tenant, and upload your business documents. The AI will learn from these documents to provide accurate responses.
+
+Contact us for more information at support@example.com

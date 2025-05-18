@@ -1,0 +1,56 @@
+Company Name: FreshFold Laundry Services
+
+Overview:
+FreshFold is a modern laundry and dry-cleaning service offering convenient pickup, expert cleaning, and timely delivery. We focus on quality, speed, and customer satisfaction. Our services are available for both individual households and small businesses.
+
+Operating Hours:
+- Monday to Saturday: 8:00 AM – 8:00 PM
+- Sunday: Closed
+
+Services Offered:
+1. Wash & Fold
+2. Dry Cleaning
+3. Ironing/Pressing
+4. Stain Removal
+5. Express Service (Same-day delivery, limited slots)
+6. Subscription Plans (Weekly or Monthly)
+7. Commercial Laundry (Restaurants, Salons, Airbnb)
+
+Pickup & Delivery:
+- Free pickup and delivery within city limits.
+- Pickup slots: 9:00 AM – 12:00 PM or 5:00 PM – 8:00 PM
+- Customers can schedule via our website, app, or phone.
+- Standard delivery time: 24 to 48 hours.
+
+Pricing (examples):
+- Wash & Fold: $1.50 per pound (minimum 10 lbs)
+- Shirt (pressed): $2.00
+- Suit (dry clean): $12.00
+- Express Service: +$10 surcharge
+
+Payment Methods:
+- Cash, Debit/Credit Card, Online Transfers
+- Payments can be made in advance or on delivery
+
+Customer Support Guidelines for AI:
+- Always greet customers warmly and professionally.
+- Confirm service area before accepting new orders.
+- Provide clear pickup/delivery times and pricing info.
+- Escalate complex complaints or lost item reports to human staff.
+- Maintain a friendly, helpful, and solution-focused tone.
+
+Common FAQs:
+- Q: What happens if you damage or lose an item?
+  A: We follow a strict quality control process, but in rare cases of damage or loss, we compensate up to 5x the service charge of the item.
+
+- Q: Can I reschedule my pickup?
+  A: Yes, just let us know at least 2 hours before your scheduled time.
+
+- Q: Do you use eco-friendly detergents?
+  A: Yes, we use biodegradable, skin-safe detergents for all washes.
+
+Contact:
+- Website: www.freshfoldlaundry.com
+- Phone: (123) 456-7890
+- Email: support@freshfoldlaundry.com
+- WhatsApp Chat: Available on business hours

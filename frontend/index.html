@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalVoiceAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff6b35;
+            --secondary: #2e294e;
+            --accent: #1b998b;
+            --background: #f7fff7;
+            --text: #1a1a1a;
+            --error: #ff5252;
+            --shadow: 4px 4px 0px rgba(0, 0, 0, 0.8);
+        }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+        }
+        .neo-btn {
+            background-color: white;
+            border: 2px solid black;
+            box-shadow: var(--shadow);
+            transition: transform 0.1s ease;
+        }
+        .neo-btn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+        }
+        .neo-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        .neo-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+        .neo-accent {
+            background-color: var(--accent);
+            color: white;
+        }
+        .neo-container {
+            border: 2px solid black;
+            box-shadow: var(--shadow);
+            background-color: white;
+        }
+        .neo-input {
+            border: 2px solid black;
+            background-color: white;
+            padding: 0.5rem;
+        }
+        .neo-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-center" style="color: var(--secondary);">LocalVoiceAI</h1>
+            <p class="text-center text-xl mt-2">Your personal AI chat platform with local data</p>
+        </header>
+
+        <main>
+            <div class="max-w-4xl mx-auto neo-container p-8 mt-8">
+                <div id="auth-section" class="mb-8">
+                    <h2 class="text-3xl font-bold mb-6 text-center" style="color: var(--secondary);">Login or Register</h2>
+                    <div class="flex flex-col md:flex-row md:space-x-8">
+                        <div class="w-full md:w-1/2 mb-6 md:mb-0">
+                            <div class="neo-container p-6" style="border-color: var(--primary);">
+                                <h3 class="text-xl font-bold mb-4" style="color: var(--primary);">Login</h3>
+                                <form id="login-form" class="space-y-4">
+                                    <div>
+                                        <label for="login-email" class="block text-sm font-medium mb-1">Email</label>
+                                        <input type="email" id="login-email" name="email" required
+                                            class="neo-input w-full rounded-none">
+                                    </div>
+                                    <div>
+                                        <label for="login-password" class="block text-sm font-medium mb-1">Password</label>
+                                        <input type="password" id="login-password" name="password" required
+                                            class="neo-input w-full rounded-none">
+                                    </div>
+                                    <div class="mt-6">
+                                        <button type="submit"
+                                            class="neo-btn neo-primary w-full py-2 px-4 font-bold">
+                                            Login
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-1/2">
+                            <div class="neo-container p-6" style="border-color: var(--accent);">
+                                <h3 class="text-xl font-bold mb-4" style="color: var(--accent);">Register</h3>
+                                <form id="register-form" class="space-y-4">
+                                    <div>
+                                        <label for="register-email" class="block text-sm font-medium mb-1">Email</label>
+                                        <input type="email" id="register-email" name="email" required
+                                            class="neo-input w-full rounded-none">
+                                    </div>
+                                    <div>
+                                        <label for="register-full-name" class="block text-sm font-medium mb-1">Full Name</label>
+                                        <input type="text" id="register-full-name" name="fullName" required
+                                            class="neo-input w-full rounded-none">
+                                    </div>
+                                    <div>
+                                        <label for="register-company-name" class="block text-sm font-medium mb-1">Company Name</label>
+                                        <input type="text" id="register-company-name" name="companyName" required
+                                            class="neo-input w-full rounded-none">
+                                    </div>
+                                    <div>
+                                        <label for="register-password" class="block text-sm font-medium mb-1">Password</label>
+                                        <input type="password" id="register-password" name="password" required
+                                            class="neo-input w-full rounded-none">
+                                    </div>
+                                    <div class="mt-6">
+                                        <button type="submit"
+                                            class="neo-btn neo-accent w-full py-2 px-4 font-bold">
+                                            Register
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dashboard-section" class="hidden">
+                    <div class="flex justify-between items-center mb-8 py-4 border-b-2 border-black">
+                        <h2 class="text-3xl font-bold" style="color: var(--secondary);">Dashboard</h2>
+                        <button id="logout-btn"
+                            class="neo-btn py-2 px-4 font-bold" style="background-color: var(--error);">
+                            Logout
+                        </button>
+                    </div>
+
+                    <div class="mb-12">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-2xl font-bold" style="color: var(--secondary);">Your Agents</h3>
+                            <div class="flex space-x-4 items-center">
+                                <input type="text" id="new-tenant-name" placeholder="New Agent Name" 
+                                    class="neo-input py-2 px-3">
+                                <button id="add-tenant-btn"
+                                    class="neo-btn neo-primary py-2 px-4 font-bold whitespace-nowrap">
+                                    + Add Agent
+                                </button>
+                            </div>
+                        </div>
+                        <div id="tenants-list" class="space-y-6 mt-6">
+                            <!-- Tenants will be displayed here -->
+                        </div>
+                    </div>
+
+                    <div id="tenant-details" class="hidden">
+                        <div class="flex items-center mb-6">
+                            <a href="javascript:void(0)" onclick="document.getElementById('tenant-details').classList.add('hidden')" class="neo-btn py-1 px-3 mr-4">
+                                ← Back
+                            </a>
+                            <h3 class="text-2xl font-bold" style="color: var(--secondary);">Agent Details</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div class="neo-container p-6" style="border-color: var(--accent);">
+                                <h4 class="text-xl font-bold mb-4" style="color: var(--accent);">Documents</h4>
+                                <div class="flex items-center mb-4 p-3 neo-container" style="background-color: var(--background);">
+                                    <label for="document-upload" class="block mr-4 whitespace-nowrap">Upload file:</label>
+                                    <input type="file" id="document-upload" class="w-full">
+                                    <button id="upload-document-btn"
+                                        class="neo-btn neo-accent py-2 px-3 ml-2 whitespace-nowrap">
+                                        Upload
+                                    </button>
+                                </div>
+                                <div id="documents-list" class="space-y-3 max-h-60 overflow-y-auto p-2">
+                                    <!-- Documents will be displayed here -->
+                                </div>
+                            </div>
+
+                            <div class="neo-container p-6" style="border-color: var(--primary);">
+                                <h4 class="text-xl font-bold mb-4" style="color: var(--primary);">Widget Integration</h4>
+                                <div class="flex items-center justify-between mb-4">
+                                    <p class="font-medium">Add to your website:</p>
+                                    <a href="javascript:void(0)" onclick="openWidgetTester()" class="neo-btn neo-primary py-2 px-3 font-bold flex items-center">
+                                        Test Widget <span class="ml-1">↗</span>
+                                    </a>
+                                </div>
+                                <pre id="chat-widget-code"
+                                    class="bg-gray-800 text-white p-3 border-2 border-black text-sm overflow-x-auto mb-3"></pre>
+                                <div>
+                                    <button id="copy-widget-code-btn"
+                                        class="neo-btn py-2 px-3 font-bold">
+                                        Copy Code
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="neo-container p-6" style="border-color: var(--secondary);">
+                            <h4 class="text-xl font-bold mb-4" style="color: var(--secondary);">Conversation History</h4>
+                            <div id="conversations-list" class="space-y-3 max-h-96 overflow-y-auto p-2">
+                                <!-- Conversations will be displayed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chat Widget Demo -->
+    <div id="chat-widget-demo" class="fixed bottom-4 right-4 z-50 w-80 neo-container overflow-hidden">
+        <div style="background-color: var(--secondary);" class="text-white p-3 flex justify-between items-center border-b-2 border-black">
+            <h3 id="chat-widget-title" class="text-sm font-bold">LocalVoiceAI Demo</h3>
+            <button id="chat-widget-toggle" class="text-white focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        <div id="chat-messages" class="h-64 overflow-y-auto p-3 space-y-3 bg-white">
+            <!-- Chat messages will appear here -->
+            <div class="flex items-start">
+                <div class="neo-container p-2 max-w-[80%]" style="background-color: var(--accent); color: white;">
+                    <p class="text-sm font-medium">Hello! How can I help you today?</p>
+                </div>
+            </div>
+        </div>
+        <div class="border-t-2 border-black p-3 bg-white">
+            <div class="flex space-x-2">
+                <input type="text" id="chat-input" placeholder="Type your message..."
+                    class="neo-input flex-1 rounded-none">
+                <button id="chat-send-btn"
+                    class="neo-btn neo-primary py-1 px-3 font-bold">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
