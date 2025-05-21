@@ -102,6 +102,7 @@ class SQLiteDB:
             tenant_id TEXT NOT NULL,
             content TEXT NOT NULL,
             chunk_index INTEGER NOT NULL,
+            embedding TEXT,
             created_at TEXT NOT NULL,
             FOREIGN KEY (document_id) REFERENCES documents (id)
         )

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.api import api_router
 from app.core.config import settings
+from app.services.llm import vector_search_available, embedding_model
 
 app = FastAPI(
     title="AI Chat Agent Platform",
@@ -25,6 +26,16 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/")
 async def root():
     return {"message": "Welcome to the AI Chat Agent Platform API"}
+
+@app.get("/vector-status")
+async def vector_status():
+    """Check if vector search is available and working"""
+    status = {
+        "vector_search_available": vector_search_available,
+        "model_loaded": embedding_model is not None,
+        "model_name": embedding_model.__class__.__name__ if embedding_model else None
+    }
+    return status
 
 if __name__ == "__main__":
     import uvicorn

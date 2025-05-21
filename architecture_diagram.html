@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalVoiceAI Architecture Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: white;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .diagram-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>LocalVoiceAI Architecture Diagram</h1>
+    <div class="diagram-container">
+        <div class="mermaid">
+graph TD
+    subgraph "Frontend"
+        A[Admin Dashboard] --> |API Requests| D[FastAPI Backend]
+        B[Chat Widget] --> |API Requests| D
+        C[Business Website] --> |Embeds| B
+    end
+    
+    subgraph "Backend Services"
+        D --> E[Auth Service]
+        D --> F[Document Service]
+        D --> G[Chat Service]
+        
+        F --> |Process Documents| H[RAG Pipeline]
+        H --> |1. Chunk| H1[Text Chunking]
+        H --> |2. Embed| H2[Sentence Transformers]
+        H --> |3. Index| H3[FAISS Vector DB]
+        
+        G --> |Retrieve Context| H3
+        G --> |Generate Response| J[OpenAI API]
+    end
+    
+    subgraph "Database"
+        E --> |User Data| K[SQLite Database]
+        F --> |Document Storage| K
+        G --> |Conversation History| K
+    end
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#bfb,stroke:#333,stroke-width:2px
+    style H fill:#fbb,stroke:#333,stroke-width:2px
+    style H3 fill:#bbf,stroke:#333,stroke-width:2px
+    style J fill:#fbf,stroke:#333,stroke-width:2px
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>

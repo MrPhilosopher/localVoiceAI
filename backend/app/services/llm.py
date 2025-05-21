@@ -10,6 +10,53 @@ from app.db.supabase import get_supabase_client
 from app.core.config import settings
 from app.db.sqlite_db import get_sqlite_client
 
+# Try to import the vector similarity packages, but install them if they're not available
+vector_search_available = False
+embedding_model = None
+
+try:
+    # First try to import
+    import numpy as np
+    from sentence_transformers import SentenceTransformer
+    import faiss
+    
+    # If we get here, imports worked, so initialize the model
+    print("Vector search dependencies found, initializing model...")
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("Sentence Transformer model loaded successfully")
+    vector_search_available = True
+except ImportError as e:
+    print(f"Vector search dependencies not available: {e}")
+    try:
+        print("Attempting to install missing dependencies...")
+        import subprocess
+        import sys
+        
+        # Install necessary packages
+        subprocess.check_call([sys.executable, "-m", "pip", "install", 
+                             "numpy>=1.22.0", 
+                             "sentence-transformers>=2.2.2", 
+                             "faiss-cpu>=1.7.4"])
+        
+        # Now try import again
+        import numpy as np
+        from sentence_transformers import SentenceTransformer
+        import faiss
+        
+        # Initialize model
+        print("Dependencies installed successfully, initializing model...")
+        embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("Sentence Transformer model loaded successfully")
+        vector_search_available = True
+    except Exception as install_error:
+        print(f"Failed to install dependencies: {install_error}")
+        embedding_model = None
+        vector_search_available = False
+except Exception as other_error:
+    print(f"Other error with vector search setup: {other_error}")
+    embedding_model = None
+    vector_search_available = False
+
 # Maximum chunk size for document processing
 MAX_CHUNK_SIZE = 500  # words
 
@@ -42,9 +89,110 @@ def split_text_into_chunks(text: str, max_chunk_size: int) -> List[str]:
     
     return chunks
 
+def generate_embedding(text: str) -> List[float]:
+    """Generate embedding vector for text using Sentence Transformers."""
+    if not vector_search_available or embedding_model is None:
+        # Return empty embedding if vector search is not available
+        print("Skipping embedding generation as vector search is not available")
+        return []
+    
+    try:
+        # Generate embedding and convert to Python list for storage
+        embedding = embedding_model.encode(text)
+        return embedding.tolist()
+    except Exception as e:
+        print(f"Error generating embedding: {e}")
+        return []
+
+class FAISSRetriever:
+    """Vector similarity search using FAISS"""
+    
+    def __init__(self):
+        """Initialize the FAISS retriever"""
+        if not vector_search_available:
+            print("FAISS retriever initialized without vector search capabilities")
+            self.available = False
+            return
+            
+        self.available = True
+        self.dimension = 384  # Dimension of the all-MiniLM-L6-v2 model
+        self.index = None
+        self.chunks = None
+        self.embeddings = None
+    
+    def fit(self, chunks, embeddings):
+        """
+        Build a FAISS index from embeddings
+        
+        Args:
+            chunks: List of document chunks
+            embeddings: List of embedding vectors corresponding to chunks
+        """
+        if not self.available:
+            print("Cannot fit FAISS index: vector search not available")
+            return
+            
+        self.chunks = chunks
+        self.embeddings = embeddings
+        
+        # Create FAISS index - using L2 distance
+        self.index = faiss.IndexFlatL2(self.dimension)
+        
+        # Make sure we have valid embeddings
+        if not embeddings or len(embeddings) == 0:
+            print("No valid embeddings to fit into FAISS index")
+            return
+            
+        # Convert embeddings to numpy array
+        try:
+            embedding_array = np.array(embeddings).astype('float32')
+            
+            # Only add vectors if we have the right shape
+            if embedding_array.shape[1] == self.dimension:
+                # Add vectors to the index
+                self.index.add(embedding_array)
+                print(f"FAISS index built with {len(embeddings)} vectors")
+            else:
+                print(f"Error: Embedding dimension mismatch. Expected {self.dimension}, got {embedding_array.shape[1]}")
+        except Exception as e:
+            print(f"Error building FAISS index: {e}")
+    
+    def search(self, query_vector, k=5):
+        """
+        Search for nearest neighbors of query vector
+        
+        Args:
+            query_vector: The vector to search for
+            k: Number of results to return
+            
+        Returns:
+            List of (chunk, distance) tuples
+        """
+        if not self.available:
+            print("Cannot search FAISS index: vector search not available")
+            return []
+            
+        if self.index is None or self.index.ntotal == 0:
+            print("FAISS index is empty or not initialized")
+            return []
+            
+        # Convert query vector to numpy array
+        query_array = np.array([query_vector]).astype('float32')
+        
+        # Search the index
+        distances, indices = self.index.search(query_array, k)
+        
+        # Return results with distances
+        results = []
+        for i, idx in enumerate(indices[0]):
+            if idx != -1 and idx < len(self.chunks):  # -1 indicates no result
+                results.append((self.chunks[idx], float(distances[0][i])))
+                
+        return results
+
 async def process_document(document_id: str, file_path: str, document_type: str, tenant_id: str):
     """
-    Process a document by loading, splitting into chunks, and storing in database.
+    Process a document by loading, splitting into chunks, generating embeddings, and storing in database.
     """
     db = get_sqlite_client()
     
@@ -73,18 +221,22 @@ async def process_document(document_id: str, file_path: str, document_type: str,
         # Split text into chunks
         chunks = split_text_into_chunks(text, MAX_CHUNK_SIZE)
         
-        # Store chunks in database
+        # Store chunks in database with embeddings
         now = datetime.utcnow().isoformat()
         for i, chunk in enumerate(chunks):
             chunk_id = str(uuid4())
             
-            # Store chunk in database
+            # Generate embedding for this chunk
+            embedding = generate_embedding(chunk)
+            
+            # Store chunk and its embedding in database
             db.table('document_chunks').insert({
                 "id": chunk_id,
                 "document_id": document_id,
                 "tenant_id": tenant_id,
                 "content": chunk,
                 "chunk_index": i,
+                "embedding": json.dumps(embedding) if embedding else None,
                 "created_at": now
             }).execute()
         
@@ -107,8 +259,7 @@ async def process_document(document_id: str, file_path: str, document_type: str,
 async def retrieve_relevant_context(query: str, tenant_id: str, num_results: int = 5):
     """
     Retrieve relevant document chunks based on the query.
-    In a production environment, this would use vector similarity search.
-    For this demo, we'll use simple keyword matching.
+    Uses vector similarity search with FAISS if available, otherwise falls back to keyword matching.
     """
     db = get_sqlite_client()
     
@@ -122,16 +273,64 @@ async def retrieve_relevant_context(query: str, tenant_id: str, num_results: int
         # Clean and normalize the query
         query = re.sub(r'\s+', ' ', query).lower().strip()
         
-        # Extract keywords (basic implementation - in production use NLP)
+        # Get all document chunks for this tenant
+        chunks_response = db.table('document_chunks').select('*').eq('tenant_id', tenant_id).execute()
+        chunks = chunks_response.data
+        
+        if not chunks:
+            return "No document chunks available for this tenant."
+            
+        # Try vector similarity search if available
+        if vector_search_available:
+            # Check if we have embeddings in the chunks
+            valid_embeddings = []
+            valid_chunks = []
+            
+            for chunk in chunks:
+                if chunk.get('embedding'):
+                    try:
+                        # Parse the embedding JSON
+                        embedding = json.loads(chunk['embedding'])
+                        if embedding and len(embedding) > 0:
+                            valid_embeddings.append(embedding)
+                            valid_chunks.append(chunk)
+                    except (json.JSONDecodeError, TypeError) as e:
+                        print(f"Error parsing embedding for chunk {chunk['id']}: {e}")
+                        continue
+            
+            if valid_embeddings and len(valid_embeddings) > 0:
+                print(f"Using FAISS search with {len(valid_embeddings)} embeddings")
+                # Generate query embedding
+                query_embedding = generate_embedding(query)
+                
+                if query_embedding and len(query_embedding) > 0:
+                    # Use FAISS for efficient similarity search
+                    retriever = FAISSRetriever()
+                    retriever.fit(valid_chunks, valid_embeddings)
+                    top_chunks = retriever.search(query_embedding, num_results)
+                    
+                    if top_chunks and len(top_chunks) > 0:
+                        if not top_chunks:
+                            return "No relevant information found in the available documents."
+                        
+                        # Format the context
+                        context = "\n\n".join([chunk[0]['content'] for chunk in top_chunks])
+                        return context
+                    else:
+                        print("No FAISS results found, falling back to keyword matching")
+                else:
+                    print("Failed to generate query embedding, falling back to keyword matching")
+            else:
+                print("No valid embeddings found, falling back to keyword matching")
+        else:
+            print("Vector search not available, using keyword matching")
+            
+        # Fall back to keyword matching
         stop_words = {'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'in', 'to', 'for'}
         keywords = [word for word in query.split() if word not in stop_words]
         
         # Find relevant chunks that contain at least one keyword
         relevant_chunks = []
-        
-        # Get all document chunks for this tenant
-        chunks_response = db.table('document_chunks').select('*').eq('tenant_id', tenant_id).execute()
-        chunks = chunks_response.data
         
         for chunk in chunks:
             chunk_content = chunk['content'].lower()

@@ -7,7 +7,7 @@ import shutil
 from app.db.sqlite_db import get_sqlite_client
 from app.api.endpoints.auth import get_current_user
 from app.models.document import Document, DocumentCreate, DocumentUpdate
-from app.services.llm import process_document
+from app.services.llm import process_document, vector_search_available, embedding_model
 
 router = APIRouter()
 
@@ -212,6 +212,80 @@ async def get_document_status(document_id: UUID, current_user = Depends(get_curr
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting document status: {str(e)}"
+        )
+
+@router.get("/vector-search-status", dependencies=[])
+async def get_vector_search_status():
+    """Check if vector search is available and working"""
+    status = {
+        "vector_search_available": vector_search_available,
+        "model_loaded": embedding_model is not None,
+        "model_name": embedding_model.__class__.__name__ if embedding_model else None
+    }
+    return status
+
+@router.post("/{document_id}/process", status_code=status.HTTP_202_ACCEPTED)
+async def process_document_manually(document_id: UUID, background_tasks: BackgroundTasks, current_user = Depends(get_current_user)):
+    # Use SQLite database
+    db = get_sqlite_client()
+    print(f"Manually processing document {document_id}, user {current_user['id']}")
+    
+    try:
+        # Get the document
+        doc_response = db.table('documents').select('*').eq('id', str(document_id)).execute()
+        
+        if not doc_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found"
+            )
+        
+        document = doc_response.data[0]
+        
+        # Get the tenant
+        tenant_response = db.table('tenants').select('*').eq('id', document['tenant_id']).execute()
+        
+        if not tenant_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found"
+            )
+        
+        tenant = tenant_response.data[0]
+        
+        # Verify tenant ownership
+        if tenant["owner_id"] != current_user["id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this document"
+            )
+        
+        # Update document status
+        db.table('documents').update({
+            "is_processed": 0,
+            "embedding_status": "pending"
+        }).eq('id', str(document_id)).execute()
+        
+        # Add document processing to background tasks
+        background_tasks.add_task(
+            process_document,
+            document_id=str(document_id),
+            file_path=document['file_path'],
+            document_type=document['document_type'],
+            tenant_id=document['tenant_id']
+        )
+        
+        print(f"Added document processing to background tasks for document ID: {document_id}")
+        
+        return {"message": f"Document processing started for document ID: {document_id}"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error processing document: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing document: {str(e)}"
         )
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

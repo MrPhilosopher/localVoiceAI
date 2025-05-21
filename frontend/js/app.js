@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <p class="mt-2">${tenant.description || 'AI Agent powered by LocalVoiceAI'}</p>
                 <div class="mt-3 pt-3 border-t border-black flex justify-between">
-                    <span class="text-sm font-medium">API Key: <span class="text-gray-600">${tenant.api_key.substring(0, 10)}...</span></span>
+                    <span class="text-sm font-medium">API Key: <span class="text-gray-600">${tenant.api_key.substring(0, 2)}${'•'.repeat(20)}${tenant.api_key.substring(tenant.api_key.length - 2)}</span></span>
                     <span class="text-sm font-medium">Created: <span class="text-gray-600">${new Date(tenant.created_at).toLocaleDateString()}</span></span>
                 </div>
             `;
@@ -349,6 +349,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusBadge = '<span class="text-xs py-1 px-2 font-bold" style="background-color: #c7d2fe; color: black;">Pending</span>';
             }
             
+            // Add reprocess button if document processing failed
+            let actionButtons = '';
+            if (doc.embedding_status.startsWith('failed')) {
+                actionButtons = `
+                    <div class="flex space-x-2">
+                        <button class="process-doc-btn neo-btn px-2 py-1" style="background-color: var(--accent); color: white;" data-id="${doc.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <button class="delete-doc-btn neo-btn px-2 py-1" style="background-color: var(--error); color: white;" data-id="${doc.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            } else {
+                actionButtons = `
+                    <button class="delete-doc-btn neo-btn px-2 py-1" style="background-color: var(--error); color: white;" data-id="${doc.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+            }
+            
             docElement.innerHTML = `
                 <div>
                     <p class="font-bold">${doc.title}</p>
@@ -357,17 +384,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${statusBadge}
                     </div>
                 </div>
-                <button class="delete-doc-btn neo-btn px-2 py-1" style="background-color: var(--error); color: white;" data-id="${doc.id}">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                    </svg>
-                </button>
+                ${actionButtons}
             `;
             
             documentsList.appendChild(docElement);
             
             const deleteBtn = docElement.querySelector('.delete-doc-btn');
             deleteBtn.addEventListener('click', () => deleteDocument(doc.id));
+            
+            // Add event listener to process button if it exists
+            const processBtn = docElement.querySelector('.process-doc-btn');
+            if (processBtn) {
+                processBtn.addEventListener('click', () => processDocument(doc.id));
+            }
         });
     }
     
@@ -410,6 +439,29 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error uploading document:', error);
             alert('Failed to upload document. Please try again.');
+        }
+    }
+    
+    async function processDocument(documentId) {
+        try {
+            const response = await fetch(`${API_URL}/documents/${documentId}/process`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            if (response.ok) {
+                alert('Document processing started. This may take a moment.');
+                loadDocuments(currentTenant.id);
+            } else {
+                const data = await response.json();
+                alert(`Failed to process document: ${data.detail || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error processing document:', error);
+            alert('Failed to process document. Please try again.');
         }
     }
     
@@ -658,8 +710,10 @@ function openWidgetTester() {
     const apiKey = sessionStorage.getItem('currentTenantApiKey');
     
     if (apiKey) {
-        // Open the widget test page with the API key as a URL parameter
-        window.open(`widget-test.html?api_key=${apiKey}`, '_blank');
+        // Store the API key in session storage and open widget test page
+        // Without exposing the API key in the URL
+        sessionStorage.setItem('currentTenantApiKey', apiKey);
+        window.open('widget-test.html', '_blank');
     } else {
         // If no API key is available, open the widget test page without a parameter
         window.open('widget-test.html', '_blank');
