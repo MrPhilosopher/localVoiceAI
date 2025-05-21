@@ -11,6 +11,7 @@ def parse_postgres_url(supabase_url, supabase_key):
     """
     Builds a PostgreSQL connection string from Supabase credentials.
     For Supabase, we need to use the connection string format for direct database access.
+    
     """
     # Extract the project ID from the URL
     project_id = supabase_url.split('//')[1].split('.')[0]
